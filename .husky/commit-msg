@@ -1,0 +1,25 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+MSG_FILE=$1
+COMMIT_MSG=$(cat $MSG_FILE)
+
+PATTERN="^(feat|fix|docs|style|refactor|perf|test|chore|ci)(\([a-zA-Z0-9_-]+\))?!?: [a-zA-Z0-9].{0,72}$"
+
+if ! echo "$COMMIT_MSG" | grep -Eq "$PATTERN"; then
+    echo "======================================================="
+    echo "❌ ERROR: Commit message does not follow Conventional Commits standard."
+    echo "======================================================="
+    echo "💡 Correct format: <type>(<optional-scope>): <short description>"
+    echo ""
+    echo "Allowed types: feat, fix, docs, style, refactor, perf, test, chore, ci"
+    echo "Max title length: 72 characters."
+    echo ""
+    echo "✅ Valid examples:"
+    echo "  feat: add user endpoints"
+    echo "  feat(auth): integrate discord login"
+    echo "  fix(database): fix initial data seed"
+    echo "  refactor: clean up dependency injection"
+    echo "======================================================="
+    exit 1
+fi

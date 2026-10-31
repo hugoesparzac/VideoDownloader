@@ -1,0 +1,16 @@
+{
+  "tasks": [
+    {
+      "name": "dotnet-format-staged",
+      "command": "dotnet",
+      "args": ["format", "whitespace", "--include", "${staged}"],
+      "include": ["**/*.cs"]
+    },
+    {
+      "name": "dotnet-format-style-staged",
+      "command": "dotnet",
+      "args": ["format", "style", "--include", "${staged}"],
+      "include": ["**/*.cs"]
+    }
+  ]
+}
