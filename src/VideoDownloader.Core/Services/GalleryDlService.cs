@@ -53,6 +53,46 @@ public sealed class GalleryDlService(string binariesFolder) : IImageDownloadServ
         }
     }
 
+    public async Task<string?> GetToolVersionAsync(CancellationToken ct = default)
+    {
+        string? executable = File.Exists(GetLocalPath()) ? GetLocalPath() : FindOnPath(GetPathName());
+        if (executable is null)
+        {
+            return null;
+        }
+
+        var (exitCode, output, _) = await ToolRunner.RunAsync(executable, ["--version"], ct);
+        return exitCode == 0 ? output : null;
+    }
+
+    public async Task<string?> UpdateToolAsync(CancellationToken ct = default)
+    {
+        if (!File.Exists(GetLocalPath()) && FindOnPath(GetPathName()) is not null)
+        {
+            throw new DownloadException(
+                "gallery-dl comes from your system. Update it with your package manager.");
+        }
+
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux())
+        {
+            throw new DownloadException(
+                "gallery-dl was not found. Install it (for example with 'brew install gallery-dl') and restart the app.");
+        }
+
+        await DownloadExecutableAsync(GetLocalFileName(), GetLocalPath(), ct);
+        _executable = GetLocalPath();
+
+        return await GetToolVersionAsync(ct);
+    }
+
+    private static string GetLocalFileName() =>
+        OperatingSystem.IsWindows() ? "gallery-dl.exe" : "gallery-dl.bin";
+
+    private static string GetPathName() =>
+        OperatingSystem.IsWindows() ? "gallery-dl.exe" : "gallery-dl";
+
+    private string GetLocalPath() => Path.Combine(binariesFolder, GetLocalFileName());
+
     private static ImageDownloadResult MoveResults(List<string> files, ImageDownloadRequest request)
     {
         if (files.Count == 1)
