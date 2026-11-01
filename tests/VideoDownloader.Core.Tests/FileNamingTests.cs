@@ -36,4 +36,28 @@ public sealed class FileNamingTests : IDisposable
 
         Assert.Equal(Path.Combine(_folder, "video (2).mp4"), FileNaming.GetUniquePath(path));
     }
+
+    [Fact]
+    public void SanitizeFileName_ReplacesInvalidCharacters() =>
+        Assert.Equal("Mix_ Rock_Pop_", FileNaming.SanitizeFileName("Mix: Rock/Pop?"));
+
+    [Fact]
+    public void SanitizeFileName_EmptyOrDots_ReturnsFallback()
+    {
+        Assert.Equal("Untitled", FileNaming.SanitizeFileName("   "));
+        Assert.Equal("Playlist", FileNaming.SanitizeFileName("...", "Playlist"));
+    }
+
+    [Theory]
+    [InlineData(1, 4, "1")]
+    [InlineData(1, 9, "1")]
+    [InlineData(1, 10, "01")]
+    [InlineData(9, 10, "09")]
+    [InlineData(10, 10, "10")]
+    [InlineData(1, 99, "01")]
+    [InlineData(1, 100, "001")]
+    [InlineData(99, 150, "099")]
+    [InlineData(100, 100, "100")]
+    public void FormatIndex_PadsToWidthOfTotal(int index, int total, string expected) =>
+        Assert.Equal(expected, FileNaming.FormatIndex(index, total));
 }

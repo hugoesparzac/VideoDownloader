@@ -70,6 +70,20 @@
                 Command="{Binding CancelDownloadCommand}"
                 IsVisible="{Binding IsDownloading}" />
       </StackPanel>
+
+      <StackPanel Spacing="4" IsVisible="{Binding HasFailures}">
+        <TextBlock Text="Skipped items" Opacity="0.7" />
+        <ScrollViewer MaxHeight="140">
+          <ItemsControl ItemsSource="{Binding FailedItems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </StackPanel>
+
     </StackPanel>
 
     <StackPanel Grid.Row="3" Spacing="6">
