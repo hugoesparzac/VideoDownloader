@@ -1,22 +1,48 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:VideoDownloader.App.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="VideoDownloader.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="VideoDownloader.App">
+        Title="Video Downloader"
+        Width="720" Height="520"
+        MinWidth="520" MinHeight="400">
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainViewModel />
-    </Design.DataContext>
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="24" RowSpacing="16">
 
-    <TextBox Text="{Binding Greeting}"
-             HorizontalAlignment="Center"
-             VerticalAlignment="Center" />
+    <TextBlock Grid.Row="0" Text="Video Downloader"
+               FontSize="24" FontWeight="SemiBold" />
 
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <TextBox Grid.Column="0"
+               Text="{Binding Url}"
+               PlaceholderText="Paste a video or playlist URL">
+        <TextBox.KeyBindings>
+          <KeyBinding Gesture="Enter" Command="{Binding AnalyzeCommand}" />
+        </TextBox.KeyBindings>
+      </TextBox>
+      <Button Grid.Column="1" Content="Analyze"
+              Command="{Binding AnalyzeCommand}" />
+    </Grid>
+
+    <StackPanel Grid.Row="2" Spacing="8"
+                IsVisible="{Binding MediaTitle, Converter={x:Static ObjectConverters.IsNotNull}}">
+      <TextBlock Text="{Binding MediaTitle}"
+                 FontSize="16" FontWeight="SemiBold"
+                 TextWrapping="Wrap" />
+      <TextBlock Text="Available resolutions" Opacity="0.7" />
+      <ListBox ItemsSource="{Binding AvailableHeights}">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="x:Int32">
+            <TextBlock Text="{Binding StringFormat={}{0}p}" />
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </StackPanel>
+
+    <StackPanel Grid.Row="3" Spacing="6">
+      <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+      <TextBlock Text="{Binding StatusMessage}" Opacity="0.8" TextWrapping="Wrap" />
+    </StackPanel>
+
+  </Grid>
 </Window>
