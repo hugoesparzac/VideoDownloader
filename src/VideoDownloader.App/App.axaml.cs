@@ -2,8 +2,11 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 
+using Microsoft.Extensions.DependencyInjection;
+
 using VideoDownloader.App.ViewModels;
 using VideoDownloader.App.Views;
+using VideoDownloader.Core.Services;
 
 namespace VideoDownloader.App;
 
@@ -18,10 +21,16 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = new MainViewModel(),
-            };
+            var services = new ServiceCollection();
+            services.AddSingleton<IDownloadService>(_ => new DownloadService());
+            services.AddTransient<MainViewModel>();
+            var provider = services.BuildServiceProvider();
+
+            var viewModel = provider.GetRequiredService<MainViewModel>();
+            var window = new MainWindow { DataContext = viewModel };
+            window.Opened += async (_, _) => await viewModel.InitializeAsync();
+
+            desktop.MainWindow = window;
         }
 
         base.OnFrameworkInitializationCompleted();
