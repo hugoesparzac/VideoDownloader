@@ -26,6 +26,7 @@ public partial class App : Application
             services.AddSingleton<IDownloadService>(_ => new DownloadService());
             services.AddSingleton<IFolderPickerService>(_ => new FolderPickerService(() => desktop.MainWindow));
             services.AddTransient<MainViewModel>();
+            services.AddSingleton<IImageDownloadService>(_ => new GalleryDlService());
             var provider = services.BuildServiceProvider();
 
             var viewModel = provider.GetRequiredService<MainViewModel>();

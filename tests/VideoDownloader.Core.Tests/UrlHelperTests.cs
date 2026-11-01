@@ -28,4 +28,18 @@ public class UrlHelperTests
     [Fact]
     public void IsTikTokPhotoPost_VideoUrl_ReturnsFalse() =>
         Assert.False(UrlHelper.IsTikTokPhotoPost("https://www.tiktok.com/@user/video/123"));
+
+    [Theory]
+    [InlineData("https://www.tiktok.com/@kdmr98/photo/7671877560778771733", "tiktok 7671877560778771733")]
+    [InlineData("https://www.instagram.com/p/ABC123/?img_index=1", "instagram ABC123")]
+    public void GetPostFolderName_UsesSiteAndPostId(string url, string expected) =>
+        Assert.Equal(expected, UrlHelper.GetPostFolderName(url));
+
+    [Fact]
+    public void IsInstagramPost_PostUrl_ReturnsTrue() =>
+        Assert.True(UrlHelper.IsInstagramPost("https://www.instagram.com/p/ABC123/"));
+
+    [Fact]
+    public void IsInstagramPost_ReelUrl_ReturnsFalse() =>
+        Assert.False(UrlHelper.IsInstagramPost("https://www.instagram.com/reel/ABC123/"));
 }

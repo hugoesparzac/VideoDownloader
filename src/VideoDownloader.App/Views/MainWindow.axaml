@@ -48,7 +48,7 @@
                  FontSize="16" FontWeight="SemiBold"
                  TextWrapping="Wrap" />
 
-      <StackPanel Orientation="Horizontal" Spacing="16">
+      <StackPanel Orientation="Horizontal" Spacing="16" IsVisible="{Binding !IsImagePost}">
         <StackPanel Spacing="4">
           <TextBlock Text="Format" Opacity="0.7" />
           <ComboBox ItemsSource="{Binding Kinds}"
@@ -105,7 +105,7 @@
     <StackPanel Grid.Row="3" Spacing="6">
       <ProgressBar Maximum="100"
                    Value="{Binding ProgressPercent}"
-                   IsIndeterminate="{Binding !IsDownloading}"
+                   IsIndeterminate="{Binding IsProgressIndeterminate}"
                    IsVisible="{Binding IsBusy}" />
       <TextBlock Text="{Binding ProgressText}" Opacity="0.8"
                  IsVisible="{Binding IsDownloading}" />

@@ -2,7 +2,7 @@ namespace VideoDownloader.Core.Services;
 
 public static class ErrorHints
 {
-    private static readonly string[] LoginMarkers = ["login", "sign in", "cookies", "rate-limit"];
+    private static readonly string[] LoginMarkers = ["login", "sign in", "cookies", "rate-limit", "unauthorized", "401"];
 
     public static string Describe(string message)
     {

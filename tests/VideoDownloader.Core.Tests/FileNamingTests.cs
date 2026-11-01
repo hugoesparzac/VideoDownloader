@@ -60,4 +60,13 @@ public sealed class FileNamingTests : IDisposable
     [InlineData(100, 100, "100")]
     public void FormatIndex_PadsToWidthOfTotal(int index, int total, string expected) =>
         Assert.Equal(expected, FileNaming.FormatIndex(index, total));
+
+    [Fact]
+    public void GetUniqueFolderPath_FolderExists_AddsCounter()
+    {
+        string path = Path.Combine(_folder, "Photos");
+        Directory.CreateDirectory(path);
+
+        Assert.Equal($"{path} (1)", FileNaming.GetUniqueFolderPath(path));
+    }
 }
