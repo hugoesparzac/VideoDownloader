@@ -169,6 +169,26 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
         }
     }
 
+    public async Task<string> GetToolVersionAsync(CancellationToken ct = default)
+    {
+        var (exitCode, output, error) = await ToolRunner.RunAsync(GetYtDlpPath(), ["--version"], ct);
+
+        return exitCode == 0
+            ? output
+            : throw new DownloadException(FirstLine(error.Length > 0 ? error : output));
+    }
+
+    public async Task<string> UpdateToolAsync(CancellationToken ct = default)
+    {
+        var (exitCode, output, error) = await ToolRunner.RunAsync(GetYtDlpPath(), ["--update"], ct);
+
+        return exitCode != 0
+            ? throw new DownloadException(FirstLine(error.Length > 0 ? error : output))
+            : await GetToolVersionAsync(ct);
+    }
+
+    private string GetYtDlpPath() => Path.Combine(binariesFolder, Utils.YtDlpBinaryName);
+
     private static PlaylistItem? ToPlaylistItem(VideoData entry)
     {
         string? url = entry.Url ?? entry.WebpageUrl;

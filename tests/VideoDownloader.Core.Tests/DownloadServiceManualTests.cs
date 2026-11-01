@@ -15,4 +15,15 @@ public class DownloadServiceManualTests
 
         Assert.NotEmpty(info.AvailableHeights);
     }
+
+    [ManualFact]
+    public async Task GetToolVersion_ReturnsVersion()
+    {
+        var service = new DownloadService();
+        await service.InitializeAsync();
+
+        string version = await service.GetToolVersionAsync();
+
+        Assert.False(string.IsNullOrWhiteSpace(version));
+    }
 }

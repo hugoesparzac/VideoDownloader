@@ -111,6 +111,15 @@
                  IsVisible="{Binding IsDownloading}" />
       <TextBlock Text="{Binding StatusMessage}" Opacity="0.8"
                  TextWrapping="Wrap" />
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBlock Grid.Column="0"
+                  Text="{Binding ToolsStatus}"
+                  Opacity="0.6"
+                  VerticalAlignment="Center"
+                  TextTrimming="CharacterEllipsis" />
+        <Button Grid.Column="1" Content="Update tools"
+                Command="{Binding UpdateToolsCommand}" />
+      </Grid>
     </StackPanel>
 
   </Grid>

@@ -20,4 +20,8 @@ public interface IDownloadService
         PlaylistDownloadRequest request,
         IProgress<PlaylistProgressInfo>? progress = null,
         CancellationToken ct = default);
+
+    Task<string> GetToolVersionAsync(CancellationToken ct = default);
+
+    Task<string> UpdateToolAsync(CancellationToken ct = default);
 }

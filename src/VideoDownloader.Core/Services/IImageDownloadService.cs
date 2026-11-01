@@ -8,4 +8,8 @@ public interface IImageDownloadService
         ImageDownloadRequest request,
         IProgress<int>? progress = null,
         CancellationToken ct = default);
+
+    Task<string?> GetToolVersionAsync(CancellationToken ct = default);
+
+    Task<string?> UpdateToolAsync(CancellationToken ct = default);
 }

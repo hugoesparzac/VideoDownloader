@@ -28,11 +28,13 @@ public sealed partial class MainViewModel(
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AnalyzeCommand))]
     [NotifyCanExecuteChangedFor(nameof(DownloadCommand))]
+    [NotifyCanExecuteChangedFor(nameof(UpdateToolsCommand))]
     public partial bool IsReady { get; set; }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AnalyzeCommand))]
     [NotifyCanExecuteChangedFor(nameof(DownloadCommand))]
+    [NotifyCanExecuteChangedFor(nameof(UpdateToolsCommand))]
     public partial bool IsBusy { get; set; }
 
     [ObservableProperty]
@@ -78,6 +80,9 @@ public sealed partial class MainViewModel(
     [ObservableProperty]
     public partial bool IsProgressIndeterminate { get; set; } = true;
 
+    [ObservableProperty]
+    public partial string ToolsStatus { get; set; } = string.Empty;
+
     public IReadOnlyList<BrowserOption> Browsers { get; } = BrowserOption.GetAvailable();
 
     public IReadOnlyList<DownloadKind> Kinds { get; } = [DownloadKind.Video, DownloadKind.Audio];
@@ -96,6 +101,7 @@ public sealed partial class MainViewModel(
             await downloadService.InitializeAsync();
             IsReady = true;
             StatusMessage = "Ready. Paste a URL and press Analyze.";
+            await RefreshToolsStatusAsync();
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException)
         {
@@ -115,6 +121,59 @@ public sealed partial class MainViewModel(
         && MediaTitle is not null
         && (!IsPlaylist || _playlistItems.Count > 0)
         && !string.IsNullOrWhiteSpace(OutputFolder);
+
+    private bool CanUpdateTools() => IsReady && !IsBusy;
+
+    [RelayCommand(CanExecute = nameof(CanUpdateTools))]
+    private async Task UpdateToolsAsync(CancellationToken ct)
+    {
+        IsBusy = true;
+        StatusMessage = "Updating tools...";
+
+        try
+        {
+            string ytDlp = await TryUpdateAsync("yt-dlp", async () => await downloadService.UpdateToolAsync(ct));
+            string gallery = await TryUpdateAsync("gallery-dl", () => imageService.UpdateToolAsync(ct));
+
+            StatusMessage = $"{ytDlp} | {gallery}";
+            await RefreshToolsStatusAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "Update cancelled.";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private static async Task<string> TryUpdateAsync(string name, Func<Task<string?>> update)
+    {
+        try
+        {
+            string? version = await update();
+            return $"{name} {version ?? "updated"}";
+        }
+        catch (DownloadException ex)
+        {
+            return $"{name}: {ex.Message}";
+        }
+    }
+
+    private async Task RefreshToolsStatusAsync()
+    {
+        try
+        {
+            string ytDlp = await downloadService.GetToolVersionAsync();
+            string? gallery = await imageService.GetToolVersionAsync();
+            ToolsStatus = $"yt-dlp {ytDlp}  |  gallery-dl {gallery ?? "not installed yet"}";
+        }
+        catch (DownloadException)
+        {
+            ToolsStatus = string.Empty;
+        }
+    }
 
     [RelayCommand(CanExecute = nameof(CanAnalyze))]
     private async Task AnalyzeAsync(CancellationToken ct)
