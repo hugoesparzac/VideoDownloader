@@ -13,6 +13,7 @@ namespace VideoDownloader.App.ViewModels;
 public sealed partial class MainViewModel(
     IDownloadService downloadService,
     IImageDownloadService imageService,
+    ISettingsService settingsService,
     IFolderPickerService folderPicker) : ViewModelBase
 {
     private static readonly int[] PlaylistHeights = [2160, 1440, 1080, 720, 480, 360, 240, 144];
@@ -83,6 +84,9 @@ public sealed partial class MainViewModel(
     [ObservableProperty]
     public partial string ToolsStatus { get; set; } = string.Empty;
 
+    [ObservableProperty]
+    public partial bool CheckUpdatesOnStartup { get; set; } = true;
+
     public IReadOnlyList<BrowserOption> Browsers { get; } = BrowserOption.GetAvailable();
 
     public IReadOnlyList<DownloadKind> Kinds { get; } = [DownloadKind.Video, DownloadKind.Audio];
@@ -100,8 +104,18 @@ public sealed partial class MainViewModel(
         {
             await downloadService.InitializeAsync();
             IsReady = true;
-            StatusMessage = "Ready. Paste a URL and press Analyze.";
             await RefreshToolsStatusAsync();
+
+            if (CheckUpdatesOnStartup)
+            {
+                StatusMessage = "Checking for tool updates...";
+                string summary = await UpdateToolsCoreAsync(quiet: true, CancellationToken.None);
+                StatusMessage = $"{summary} Paste a URL and press Analyze.";
+            }
+            else
+            {
+                StatusMessage = "Ready. Paste a URL and press Analyze.";
+            }
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException)
         {
@@ -132,11 +146,7 @@ public sealed partial class MainViewModel(
 
         try
         {
-            string ytDlp = await TryUpdateAsync("yt-dlp", async () => await downloadService.UpdateToolAsync(ct));
-            string gallery = await TryUpdateAsync("gallery-dl", () => imageService.UpdateToolAsync(ct));
-
-            StatusMessage = $"{ytDlp} | {gallery}";
-            await RefreshToolsStatusAsync();
+            StatusMessage = await UpdateToolsCoreAsync(quiet: false, ct);
         }
         catch (OperationCanceledException)
         {
@@ -148,17 +158,41 @@ public sealed partial class MainViewModel(
         }
     }
 
-    private static async Task<string> TryUpdateAsync(string name, Func<Task<string?>> update)
+    private async Task<string> UpdateToolsCoreAsync(bool quiet, CancellationToken ct)
     {
+        string before = ToolsStatus;
+        var problems = new List<string>();
+
         try
         {
-            string? version = await update();
-            return $"{name} {version ?? "updated"}";
+            await downloadService.UpdateToolAsync(ct);
         }
         catch (DownloadException ex)
         {
-            return $"{name}: {ex.Message}";
+            problems.Add(quiet ? "Could not check for tool updates (offline?)." : $"yt-dlp: {ex.Message}");
         }
+
+        try
+        {
+            bool installed = await imageService.GetToolVersionAsync(ct) is not null;
+            if (installed || !quiet)
+            {
+                await imageService.UpdateToolAsync(ct);
+            }
+        }
+        catch (DownloadException ex) when (!quiet)
+        {
+            problems.Add($"gallery-dl: {ex.Message}");
+        }
+        catch (DownloadException)
+        {
+        }
+
+        await RefreshToolsStatusAsync();
+
+        return problems.Count > 0
+            ? string.Join(" | ", problems)
+            : ToolsStatus == before ? "Tools are up to date." : "Tools updated.";
     }
 
     private async Task RefreshToolsStatusAsync()
@@ -262,6 +296,7 @@ public sealed partial class MainViewModel(
     [RelayCommand(CanExecute = nameof(CanDownload))]
     private async Task DownloadAsync(CancellationToken ct)
     {
+        SaveSettings();
         IsBusy = true;
         IsDownloading = true;
         ProgressPercent = 0;
@@ -316,6 +351,30 @@ public sealed partial class MainViewModel(
         MediaTitle = $"Image post: {UrlHelper.GetPostFolderName(url)}";
         StatusMessage = "Image post detected. Press Download to save the images.";
     }
+
+    public void LoadSettings()
+    {
+        AppSettings settings = settingsService.Load();
+
+        if (!string.IsNullOrWhiteSpace(settings.OutputFolder) && Directory.Exists(settings.OutputFolder))
+        {
+            OutputFolder = settings.OutputFolder;
+        }
+
+        SelectedKind = settings.Kind;
+        SelectedBrowser = Browsers.FirstOrDefault(b => b.Value == settings.CookiesFromBrowser)
+            ?? BrowserOption.None;
+        CheckUpdatesOnStartup = settings.CheckUpdatesOnStartup;
+    }
+
+    public void SaveSettings() =>
+        settingsService.Save(new AppSettings
+        {
+            OutputFolder = OutputFolder,
+            Kind = SelectedKind,
+            CookiesFromBrowser = SelectedBrowser.Value,
+            CheckUpdatesOnStartup = CheckUpdatesOnStartup,
+        });
 
     private async Task DownloadImagesAsync(CancellationToken ct)
     {
