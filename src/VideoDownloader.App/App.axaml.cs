@@ -33,7 +33,11 @@ public partial class App : Application
             var viewModel = provider.GetRequiredService<MainViewModel>();
             viewModel.LoadSettings();
 
-            var window = new MainWindow { DataContext = viewModel };
+            var window = new MainWindow
+            {
+                DataContext = viewModel,
+                Title = $"Video Downloader {GetVersion()}",
+            };
             window.Opened += async (_, _) => await viewModel.InitializeAsync();
             window.Closing += (_, _) => viewModel.SaveSettings();
 
@@ -41,5 +45,11 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static string GetVersion()
+    {
+        Version? version = typeof(App).Assembly.GetName().Version;
+        return version is null ? string.Empty : $"v{version.Major}.{version.Minor}.{version.Build}";
     }
 }
