@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Video Downloader
+Comment=Download videos, audio and images
+Exec="@EXEC@"
+Icon=@ICON@
+Terminal=false
+Categories=AudioVideo;Network;
+StartupWMClass=VideoDownloader

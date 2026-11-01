@@ -5,6 +5,7 @@
         x:Class="VideoDownloader.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="Video Downloader"
+        Icon="/Assets/app-icon.png"
         Width="760" Height="620"
         MinWidth="560" MinHeight="520">
 
