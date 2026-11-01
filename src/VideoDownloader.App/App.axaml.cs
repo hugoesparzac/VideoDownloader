@@ -27,11 +27,15 @@ public partial class App : Application
             services.AddSingleton<IFolderPickerService>(_ => new FolderPickerService(() => desktop.MainWindow));
             services.AddTransient<MainViewModel>();
             services.AddSingleton<IImageDownloadService>(_ => new GalleryDlService());
+            services.AddSingleton<ISettingsService>(_ => new JsonSettingsService());
             var provider = services.BuildServiceProvider();
 
             var viewModel = provider.GetRequiredService<MainViewModel>();
+            viewModel.LoadSettings();
+
             var window = new MainWindow { DataContext = viewModel };
             window.Opened += async (_, _) => await viewModel.InitializeAsync();
+            window.Closing += (_, _) => viewModel.SaveSettings();
 
             desktop.MainWindow = window;
         }
