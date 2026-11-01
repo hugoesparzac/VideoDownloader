@@ -41,4 +41,35 @@ public static class FileNaming
         int digits = total.ToString(CultureInfo.InvariantCulture).Length;
         return index.ToString($"D{digits}", CultureInfo.InvariantCulture);
     }
+
+    public static string GetUniqueFolderPath(string path)
+    {
+        if (!Directory.Exists(path))
+        {
+            return path;
+        }
+
+        for (int i = 1; ; i++)
+        {
+            string candidate = $"{path} ({i})";
+            if (!Directory.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+    }
+
+    public static void TryDeleteFolder(string folder)
+    {
+        try
+        {
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
 }

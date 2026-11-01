@@ -12,6 +12,7 @@ namespace VideoDownloader.App.ViewModels;
 
 public sealed partial class MainViewModel(
     IDownloadService downloadService,
+    IImageDownloadService imageService,
     IFolderPickerService folderPicker) : ViewModelBase
 {
     private static readonly int[] PlaylistHeights = [2160, 1440, 1080, 720, 480, 360, 240, 144];
@@ -70,6 +71,12 @@ public sealed partial class MainViewModel(
 
     [ObservableProperty]
     public partial BrowserOption SelectedBrowser { get; set; } = BrowserOption.None;
+
+    [ObservableProperty]
+    public partial bool IsImagePost { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsProgressIndeterminate { get; set; } = true;
 
     public IReadOnlyList<BrowserOption> Browsers { get; } = BrowserOption.GetAvailable();
 
@@ -130,11 +137,20 @@ public sealed partial class MainViewModel(
 
             if (UrlHelper.IsTikTokPhotoPost(url))
             {
-                StatusMessage = "TikTok photo posts contain images, which need the image downloader (next step).";
+                ShowImagePost(url);
                 return;
             }
 
-            MediaInfo info = await downloadService.GetInfoAsync(url, SelectedBrowser.Value, ct);
+            MediaInfo info;
+            try
+            {
+                info = await downloadService.GetInfoAsync(url, SelectedBrowser.Value, ct);
+            }
+            catch (DownloadException) when (UrlHelper.IsInstagramPost(url))
+            {
+                ShowImagePost(url);
+                return;
+            }
 
             _analyzedUrl = url;
             _playlistTitle = info.Title;
@@ -195,11 +211,17 @@ public sealed partial class MainViewModel(
         FailedItems.Clear();
         StatusMessage = "Downloading...";
 
+        IsProgressIndeterminate = IsImagePost;
+
         int? maxHeight = SelectedKind == DownloadKind.Video ? SelectedResolution?.Height : null;
 
         try
         {
-            if (IsPlaylist)
+            if (IsImagePost)
+            {
+                await DownloadImagesAsync(ct);
+            }
+            else if (IsPlaylist)
             {
                 await DownloadPlaylistAsync(maxHeight, ct);
             }
@@ -220,11 +242,34 @@ public sealed partial class MainViewModel(
         {
             IsBusy = false;
             IsDownloading = false;
+            IsProgressIndeterminate = true;
         }
     }
 
     [RelayCommand]
     private void CancelDownload() => DownloadCommand.Cancel();
+
+    private void ShowImagePost(string url)
+    {
+        _analyzedUrl = url;
+        IsPlaylist = false;
+        IsImagePost = true;
+        MediaTitle = $"Image post: {UrlHelper.GetPostFolderName(url)}";
+        StatusMessage = "Image post detected. Press Download to save the images.";
+    }
+
+    private async Task DownloadImagesAsync(CancellationToken ct)
+    {
+        var progress = new Progress<int>(count => ProgressText = $"{count} file(s) downloaded");
+
+        var request = new ImageDownloadRequest(_analyzedUrl, OutputFolder, SelectedBrowser.Value);
+        ImageDownloadResult result = await imageService.DownloadAsync(request, progress, ct);
+
+        ProgressPercent = 100;
+        StatusMessage = result.FileCount == 1
+            ? $"Saved to: {result.Location}"
+            : $"Saved {result.FileCount} images to: {result.Location}";
+    }
 
     private async Task DownloadSingleAsync(int? maxHeight, CancellationToken ct)
     {

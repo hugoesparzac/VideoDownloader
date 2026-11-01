@@ -165,7 +165,7 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
         }
         finally
         {
-            TryDeleteFolder(stagingFolder);
+            FileNaming.TryDeleteFolder(stagingFolder);
         }
     }
 
@@ -178,20 +178,6 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
     private static string FirstLine(string message) =>
         message.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
             .FirstOrDefault() ?? message;
-
-    private static void TryDeleteFolder(string folder)
-    {
-        try
-        {
-            if (Directory.Exists(folder))
-            {
-                Directory.Delete(folder, recursive: true);
-            }
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-        }
-    }
 
     private static T Unwrap<T>(RunResult<T> result) =>
         result.Success
