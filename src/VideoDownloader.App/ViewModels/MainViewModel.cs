@@ -68,6 +68,11 @@ public sealed partial class MainViewModel(
     [ObservableProperty]
     public partial bool HasFailures { get; set; }
 
+    [ObservableProperty]
+    public partial BrowserOption SelectedBrowser { get; set; } = BrowserOption.None;
+
+    public IReadOnlyList<BrowserOption> Browsers { get; } = BrowserOption.GetAvailable();
+
     public IReadOnlyList<DownloadKind> Kinds { get; } = [DownloadKind.Video, DownloadKind.Audio];
 
     public ObservableCollection<ResolutionOption> AvailableResolutions { get; } = [];
@@ -117,8 +122,19 @@ public sealed partial class MainViewModel(
 
         try
         {
-            string url = Url.Trim();
-            MediaInfo info = await downloadService.GetInfoAsync(url, ct);
+            if (!UrlHelper.TryNormalize(Url, out string url))
+            {
+                StatusMessage = "That doesn't look like a valid http(s) URL.";
+                return;
+            }
+
+            if (UrlHelper.IsTikTokPhotoPost(url))
+            {
+                StatusMessage = "TikTok photo posts contain images, which need the image downloader (next step).";
+                return;
+            }
+
+            MediaInfo info = await downloadService.GetInfoAsync(url, SelectedBrowser.Value, ct);
 
             _analyzedUrl = url;
             _playlistTitle = info.Title;
@@ -146,7 +162,7 @@ public sealed partial class MainViewModel(
         }
         catch (DownloadException ex)
         {
-            StatusMessage = $"Error: {ex.Message}";
+            StatusMessage = $"Error: {ErrorHints.Describe(ex.Message)}";
         }
         catch (OperationCanceledException)
         {
@@ -194,7 +210,7 @@ public sealed partial class MainViewModel(
         }
         catch (DownloadException ex)
         {
-            StatusMessage = $"Error: {ex.Message}";
+            StatusMessage = $"Error: {ErrorHints.Describe(ex.Message)}";
         }
         catch (OperationCanceledException)
         {
@@ -218,7 +234,7 @@ public sealed partial class MainViewModel(
             ProgressText = $"{p.Percent:0}%  {p.Speed}  ETA {p.Eta}";
         });
 
-        var request = new DownloadRequest(_analyzedUrl, OutputFolder, SelectedKind, maxHeight);
+        var request = new DownloadRequest(_analyzedUrl, OutputFolder, SelectedKind, maxHeight, SelectedBrowser.Value);
         string path = await downloadService.DownloadAsync(request, progress, ct);
 
         ProgressPercent = 100;
@@ -233,8 +249,7 @@ public sealed partial class MainViewModel(
             ProgressText = $"[{p.Index}/{p.Total}] {p.Title} - {p.Item.Percent:0}%  {p.Item.Speed}";
         });
 
-        var request = new PlaylistDownloadRequest(
-            _playlistTitle, _playlistItems, OutputFolder, SelectedKind, maxHeight);
+        var request = new PlaylistDownloadRequest(_playlistTitle, _playlistItems, OutputFolder, SelectedKind, maxHeight, SelectedBrowser.Value);
 
         PlaylistDownloadResult result = await downloadService.DownloadPlaylistAsync(request, progress, ct);
 
