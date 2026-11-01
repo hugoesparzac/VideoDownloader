@@ -7,7 +7,8 @@ public sealed record PlaylistDownloadRequest(
     IReadOnlyList<PlaylistItem> Items,
     string OutputFolder,
     DownloadKind Kind,
-    int? MaxHeight = null);
+    int? MaxHeight = null,
+    string? CookiesFromBrowser = null);
 
 public sealed record PlaylistProgressInfo(
     int Index,

@@ -29,9 +29,15 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
         };
     }
 
-    public async Task<MediaInfo> GetInfoAsync(string url, CancellationToken ct = default)
+    public async Task<MediaInfo> GetInfoAsync(
+        string url,
+        string? cookiesFromBrowser = null,
+        CancellationToken ct = default)
     {
-        VideoData data = Unwrap(await GetClient().RunVideoDataFetch(url, ct: ct));
+        VideoData data = Unwrap(await GetClient().RunVideoDataFetch(
+            url,
+            ct: ct,
+            overrideOptions: BuildOptions(cookiesFromBrowser)));
         bool isPlaylist = data.ResultType == MetadataType.Playlist;
 
         var heights = (data.Formats ?? [])
@@ -95,7 +101,7 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
 
             try
             {
-                var single = new DownloadRequest(item.Url, folder, request.Kind, request.MaxHeight);
+                var single = new DownloadRequest(item.Url, folder, request.Kind, request.MaxHeight, request.CookiesFromBrowser);
                 await DownloadCoreAsync(single, prefix, itemProgress, ct);
                 succeeded++;
             }
@@ -126,6 +132,8 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
             : new Progress<DownloadProgress>(p =>
                 progress.Report(new DownloadProgressInfo(p.Progress * 100, p.DownloadSpeed, p.ETA)));
 
+        var options = BuildOptions(request.CookiesFromBrowser);
+
         try
         {
             RunResult<string> result = request.Kind switch
@@ -135,13 +143,15 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
                     format: FormatSelector.ForVideo(request.MaxHeight),
                     mergeFormat: DownloadMergeFormat.Mp4,
                     ct: ct,
-                    progress: ytProgress),
+                    progress: ytProgress,
+                    overrideOptions: options),
 
                 DownloadKind.Audio => await client.RunAudioDownload(
                     request.Url,
                     AudioConversionFormat.Mp3,
                     ct: ct,
-                    progress: ytProgress),
+                    progress: ytProgress,
+                    overrideOptions: options),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(request)),
             };
@@ -187,6 +197,11 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
         result.Success
             ? result.Data
             : throw new DownloadException(string.Join(Environment.NewLine, result.ErrorOutput));
+
+    private static OptionSet? BuildOptions(string? cookiesFromBrowser) =>
+        string.IsNullOrWhiteSpace(cookiesFromBrowser)
+            ? null
+            : new OptionSet { CookiesFromBrowser = cookiesFromBrowser };
 
     private YoutubeDL GetClient() =>
         _client ?? throw new InvalidOperationException("Call InitializeAsync first.");
