@@ -12,4 +12,9 @@ public interface IDownloadService
         DownloadRequest request,
         IProgress<DownloadProgressInfo>? progress = null,
         CancellationToken ct = default);
+
+    Task<PlaylistDownloadResult> DownloadPlaylistAsync(
+        PlaylistDownloadRequest request,
+        IProgress<PlaylistProgressInfo>? progress = null,
+        CancellationToken ct = default);
 }

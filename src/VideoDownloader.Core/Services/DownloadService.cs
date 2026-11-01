@@ -1,3 +1,5 @@
+using System.Globalization;
+
 using VideoDownloader.Core.Models;
 
 using YoutubeDLSharp;
@@ -30,6 +32,7 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
     public async Task<MediaInfo> GetInfoAsync(string url, CancellationToken ct = default)
     {
         VideoData data = Unwrap(await GetClient().RunVideoDataFetch(url, ct: ct));
+        bool isPlaylist = data.ResultType == MetadataType.Playlist;
 
         var heights = (data.Formats ?? [])
             .Where(f => f.VideoCodec is not (null or "none"))
@@ -40,6 +43,10 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
             .OrderDescending()
             .ToList();
 
+        IReadOnlyList<PlaylistItem> items = isPlaylist
+            ? (data.Entries ?? []).Select(ToPlaylistItem).OfType<PlaylistItem>().ToList()
+            : [];
+
         TimeSpan? duration = data.Duration is float seconds
             ? TimeSpan.FromSeconds(seconds)
             : null;
@@ -48,14 +55,64 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
             data.Title ?? "(untitled)",
             data.Thumbnail,
             duration,
-            data.ResultType == MetadataType.Playlist,
-            heights);
+            isPlaylist,
+            heights,
+            items);
     }
 
-    public async Task<string> DownloadAsync(
+    public Task<string> DownloadAsync(
         DownloadRequest request,
         IProgress<DownloadProgressInfo>? progress = null,
+        CancellationToken ct = default) =>
+        DownloadCoreAsync(request, string.Empty, progress, ct);
+
+    public async Task<PlaylistDownloadResult> DownloadPlaylistAsync(
+        PlaylistDownloadRequest request,
+        IProgress<PlaylistProgressInfo>? progress = null,
         CancellationToken ct = default)
+    {
+        string folder = Path.Combine(
+            request.OutputFolder,
+            FileNaming.SanitizeFileName(request.PlaylistTitle, "Playlist"));
+        Directory.CreateDirectory(folder);
+
+        int total = request.Items.Count;
+        int succeeded = 0;
+        var failed = new List<FailedItem>();
+
+        for (int i = 0; i < total; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            PlaylistItem item = request.Items[i];
+            int number = i + 1;
+            string prefix = $"{FileNaming.FormatIndex(number, total)} ";
+
+            var itemProgress = progress is null
+                ? null
+                : new Progress<DownloadProgressInfo>(p =>
+                    progress.Report(new PlaylistProgressInfo(number, total, item.Title, p)));
+
+            try
+            {
+                var single = new DownloadRequest(item.Url, folder, request.Kind, request.MaxHeight);
+                await DownloadCoreAsync(single, prefix, itemProgress, ct);
+                succeeded++;
+            }
+            catch (Exception ex) when (ex is DownloadException or IOException)
+            {
+                failed.Add(new FailedItem(item.Title, FirstLine(ex.Message)));
+            }
+        }
+
+        return new PlaylistDownloadResult(folder, succeeded, failed);
+    }
+
+    private async Task<string> DownloadCoreAsync(
+        DownloadRequest request,
+        string fileNamePrefix,
+        IProgress<DownloadProgressInfo>? progress,
+        CancellationToken ct)
     {
         var client = GetClient();
         Directory.CreateDirectory(request.OutputFolder);
@@ -91,7 +148,7 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
 
             string stagedPath = Unwrap(result);
             string finalPath = FileNaming.GetUniquePath(
-                Path.Combine(request.OutputFolder, Path.GetFileName(stagedPath)));
+                Path.Combine(request.OutputFolder, fileNamePrefix + Path.GetFileName(stagedPath)));
 
             File.Move(stagedPath, finalPath);
             return finalPath;
@@ -101,6 +158,16 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
             TryDeleteFolder(stagingFolder);
         }
     }
+
+    private static PlaylistItem? ToPlaylistItem(VideoData entry)
+    {
+        string? url = entry.Url ?? entry.WebpageUrl;
+        return url is null ? null : new PlaylistItem(entry.Title ?? url, url);
+    }
+
+    private static string FirstLine(string message) =>
+        message.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault() ?? message;
 
     private static void TryDeleteFolder(string folder)
     {

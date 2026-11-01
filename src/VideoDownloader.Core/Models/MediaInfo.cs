@@ -5,4 +5,5 @@ public sealed record MediaInfo(
     string? ThumbnailUrl,
     TimeSpan? Duration,
     bool IsPlaylist,
-    IReadOnlyList<int> AvailableHeights);
+    IReadOnlyList<int> AvailableHeights,
+    IReadOnlyList<PlaylistItem> Items);
