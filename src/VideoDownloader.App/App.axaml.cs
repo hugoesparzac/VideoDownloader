@@ -4,6 +4,7 @@ using Avalonia.Markup.Xaml;
 
 using Microsoft.Extensions.DependencyInjection;
 
+using VideoDownloader.App.Services;
 using VideoDownloader.App.ViewModels;
 using VideoDownloader.App.Views;
 using VideoDownloader.Core.Services;
@@ -23,6 +24,7 @@ public partial class App : Application
         {
             var services = new ServiceCollection();
             services.AddSingleton<IDownloadService>(_ => new DownloadService());
+            services.AddSingleton<IFolderPickerService>(_ => new FolderPickerService(() => desktop.MainWindow));
             services.AddTransient<MainViewModel>();
             var provider = services.BuildServiceProvider();
 

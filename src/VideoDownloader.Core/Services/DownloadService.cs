@@ -59,32 +59,61 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
     {
         var client = GetClient();
         Directory.CreateDirectory(request.OutputFolder);
-        client.OutputFolder = request.OutputFolder;
+
+        string stagingFolder = Path.Combine(request.OutputFolder, $".vd-tmp-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(stagingFolder);
+        client.OutputFolder = stagingFolder;
 
         var ytProgress = progress is null
             ? null
             : new Progress<DownloadProgress>(p =>
                 progress.Report(new DownloadProgressInfo(p.Progress * 100, p.DownloadSpeed, p.ETA)));
 
-        RunResult<string> result = request.Kind switch
+        try
         {
-            DownloadKind.Video => await client.RunVideoDownload(
-                request.Url,
-                format: FormatSelector.ForVideo(request.MaxHeight),
-                mergeFormat: DownloadMergeFormat.Mp4,
-                ct: ct,
-                progress: ytProgress),
+            RunResult<string> result = request.Kind switch
+            {
+                DownloadKind.Video => await client.RunVideoDownload(
+                    request.Url,
+                    format: FormatSelector.ForVideo(request.MaxHeight),
+                    mergeFormat: DownloadMergeFormat.Mp4,
+                    ct: ct,
+                    progress: ytProgress),
 
-            DownloadKind.Audio => await client.RunAudioDownload(
-                request.Url,
-                AudioConversionFormat.Mp3,
-                ct: ct,
-                progress: ytProgress),
+                DownloadKind.Audio => await client.RunAudioDownload(
+                    request.Url,
+                    AudioConversionFormat.Mp3,
+                    ct: ct,
+                    progress: ytProgress),
 
-            _ => throw new ArgumentOutOfRangeException(nameof(request)),
-        };
+                _ => throw new ArgumentOutOfRangeException(nameof(request)),
+            };
 
-        return Unwrap(result);
+            string stagedPath = Unwrap(result);
+            string finalPath = FileNaming.GetUniquePath(
+                Path.Combine(request.OutputFolder, Path.GetFileName(stagedPath)));
+
+            File.Move(stagedPath, finalPath);
+            return finalPath;
+        }
+        finally
+        {
+            TryDeleteFolder(stagingFolder);
+        }
+    }
+
+    private static void TryDeleteFolder(string folder)
+    {
+        try
+        {
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
     }
 
     private static T Unwrap<T>(RunResult<T> result) =>
