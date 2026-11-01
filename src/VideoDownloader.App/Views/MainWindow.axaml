@@ -1,22 +1,130 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:VideoDownloader.App.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        xmlns:models="using:VideoDownloader.App.Models"
         x:Class="VideoDownloader.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="VideoDownloader.App">
+        Title="Video Downloader"
+        Icon="/Assets/app-icon.png"
+        Width="760" Height="620"
+        MinWidth="560" MinHeight="520">
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainViewModel />
-    </Design.DataContext>
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="24" RowSpacing="16">
 
-    <TextBox Text="{Binding Greeting}"
-             HorizontalAlignment="Center"
-             VerticalAlignment="Center" />
+    <TextBlock Grid.Row="0" Text="Video Downloader"
+               FontSize="24" FontWeight="SemiBold" />
 
+    <StackPanel Grid.Row="1" Spacing="8">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBox Grid.Column="0"
+                Text="{Binding Url}"
+                PlaceholderText="Paste a video or playlist URL">
+          <TextBox.KeyBindings>
+            <KeyBinding Gesture="Enter" Command="{Binding AnalyzeCommand}" />
+          </TextBox.KeyBindings>
+        </TextBox>
+        <Button Grid.Column="1" Content="Analyze"
+                Command="{Binding AnalyzeCommand}" />
+      </Grid>
+
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <TextBlock Text="Browser cookies:" VerticalAlignment="Center" Opacity="0.7" />
+        <ComboBox ItemsSource="{Binding Browsers}"
+                  SelectedItem="{Binding SelectedBrowser}"
+                  MinWidth="160"
+                  ToolTip.Tip="Only needed for content that requires login (some Instagram or private posts).">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="models:BrowserOption">
+              <TextBlock Text="{Binding Label}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+    </StackPanel>
+
+    <StackPanel Grid.Row="2" Spacing="16"
+                IsVisible="{Binding MediaTitle, Converter={x:Static ObjectConverters.IsNotNull}}">
+
+      <TextBlock Text="{Binding MediaTitle}"
+                 FontSize="16" FontWeight="SemiBold"
+                 TextWrapping="Wrap" />
+
+      <StackPanel Orientation="Horizontal" Spacing="16" IsVisible="{Binding !IsImagePost}">
+        <StackPanel Spacing="4">
+          <TextBlock Text="Format" Opacity="0.7" />
+          <ComboBox ItemsSource="{Binding Kinds}"
+                    SelectedItem="{Binding SelectedKind}"
+                    MinWidth="140" />
+        </StackPanel>
+
+        <StackPanel Spacing="4" IsVisible="{Binding IsVideoSelected}">
+          <TextBlock Text="Resolution" Opacity="0.7" />
+          <ComboBox ItemsSource="{Binding AvailableResolutions}"
+                    SelectedItem="{Binding SelectedResolution}"
+                    MinWidth="180">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="models:ResolutionOption">
+                <TextBlock Text="{Binding Label}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+      </StackPanel>
+
+      <StackPanel Spacing="4">
+        <TextBlock Text="Save to" Opacity="0.7" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBox Grid.Column="0" Text="{Binding OutputFolder}" />
+          <Button Grid.Column="1" Content="Browse..."
+                  Command="{Binding BrowseFolderCommand}" />
+        </Grid>
+      </StackPanel>
+
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Content="Download" Classes="accent"
+                Command="{Binding DownloadCommand}" />
+        <Button Content="Cancel"
+                Command="{Binding CancelDownloadCommand}"
+                IsVisible="{Binding IsDownloading}" />
+      </StackPanel>
+
+      <StackPanel Spacing="4" IsVisible="{Binding HasFailures}">
+        <TextBlock Text="Skipped items" Opacity="0.7" />
+        <ScrollViewer MaxHeight="140">
+          <ItemsControl ItemsSource="{Binding FailedItems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </StackPanel>
+
+    </StackPanel>
+
+    <StackPanel Grid.Row="3" Spacing="6">
+      <ProgressBar Maximum="100"
+                   Value="{Binding ProgressPercent}"
+                   IsIndeterminate="{Binding IsProgressIndeterminate}"
+                   IsVisible="{Binding IsBusy}" />
+      <TextBlock Text="{Binding ProgressText}" Opacity="0.8"
+                 IsVisible="{Binding IsDownloading}" />
+      <TextBlock Text="{Binding StatusMessage}" Opacity="0.8"
+                 TextWrapping="Wrap" />
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+        <TextBlock Grid.Column="0"
+                   Text="{Binding ToolsStatus}"
+                   Opacity="0.6"
+                   VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis" />
+        <CheckBox Grid.Column="1"
+                  Content="Update tools on startup"
+                  IsChecked="{Binding CheckUpdatesOnStartup}" />
+        <Button Grid.Column="2" Content="Update tools"
+                Command="{Binding UpdateToolsCommand}" />
+      </Grid>
+    </StackPanel>
+
+  </Grid>
 </Window>
