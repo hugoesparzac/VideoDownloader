@@ -6,14 +6,16 @@ public sealed record BrowserOption(string Label, string? Value)
 
     public static IReadOnlyList<BrowserOption> GetAvailable()
     {
+        string suffix = OperatingSystem.IsWindows() ? " (may not work)" : string.Empty;
+
         List<BrowserOption> options =
         [
             None,
-            new("Chrome", "chrome"),
             new("Firefox", "firefox"),
-            new("Edge", "edge"),
-            new("Brave", "brave"),
-            new("Chromium", "chromium"),
+            new($"Chrome{suffix}", "chrome"),
+            new($"Edge{suffix}", "edge"),
+            new($"Brave{suffix}", "brave"),
+            new($"Chromium{suffix}", "chromium"),
         ];
 
         if (OperatingSystem.IsMacOS())

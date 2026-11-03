@@ -19,4 +19,8 @@ public class ErrorHintsTests
     [Fact]
     public void Describe_LoginError_DoesNotSuggestUpdate() =>
         Assert.DoesNotContain("Update tools", ErrorHints.Describe("ERROR: login required"));
+
+    [Fact]
+    public void Describe_CookieReadError_SuggestsFirefox() =>
+        Assert.Contains("Firefox", ErrorHints.Describe("ERROR: Could not copy Chrome cookie database"));
 }

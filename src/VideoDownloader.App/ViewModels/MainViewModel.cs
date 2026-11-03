@@ -332,6 +332,11 @@ public sealed partial class MainViewModel(
         {
             StatusMessage = "Download cancelled.";
         }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            CrashLogger.Write("DownloadAsync", ex);
+            StatusMessage = $"File error: {ex.Message}";
+        }
         finally
         {
             IsBusy = false;
