@@ -48,6 +48,34 @@ public sealed class FileNamingTests : IDisposable
         Assert.Equal("Playlist", FileNaming.SanitizeFileName("...", "Playlist"));
     }
 
+    [Fact]
+    public void FindOutputFile_ReportedPathExists_ReturnsIt()
+    {
+        string path = Path.Combine(_folder, "video.mp4");
+        File.WriteAllText(path, "x");
+
+        Assert.Equal(path, FileNaming.FindOutputFile(_folder, path));
+    }
+
+    [Fact]
+    public void FindOutputFile_ReportedPathMissing_ReturnsLargestNonTemporaryFile()
+    {
+        File.WriteAllText(Path.Combine(_folder, "small.txt"), "x");
+        string big = Path.Combine(_folder, "big.mp4");
+        File.WriteAllText(big, "xxxxxxxx");
+        File.WriteAllText(Path.Combine(_folder, "leftover.mp4.part"), "xxxxxxxxxxxxxxxxxxxx");
+
+        Assert.Equal(big, FileNaming.FindOutputFile(_folder, "wrong-path.mp4"));
+    }
+
+    [Fact]
+    public void FindOutputFile_OnlyTemporaryFiles_ReturnsNull()
+    {
+        File.WriteAllText(Path.Combine(_folder, "video.mp4.part"), "x");
+
+        Assert.Null(FileNaming.FindOutputFile(_folder, null));
+    }
+
     [Theory]
     [InlineData(1, 4, "1")]
     [InlineData(1, 9, "1")]
