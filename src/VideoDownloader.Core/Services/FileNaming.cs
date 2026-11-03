@@ -6,6 +6,23 @@ public static class FileNaming
 {
     private static readonly char[] InvalidChars = [.. Path.GetInvalidFileNameChars(), .. "<>:\"/\\|?*"];
 
+    private static readonly string[] TemporaryExtensions = [".part", ".ytdl", ".temp", ".tmp"];
+
+    public static string? FindOutputFile(string folder, string? reportedPath)
+    {
+        if (!string.IsNullOrWhiteSpace(reportedPath) && File.Exists(reportedPath))
+        {
+            return reportedPath;
+        }
+
+        return Directory.EnumerateFiles(folder)
+            .Where(f => !TemporaryExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
+            .Select(f => new FileInfo(f))
+            .OrderByDescending(f => f.Length)
+            .Select(f => f.FullName)
+            .FirstOrDefault();
+    }
+
     public static string SanitizeFileName(string name, string fallback = "Untitled")
     {
         string cleaned = string.Concat(name.Select(c => InvalidChars.Contains(c) ? '_' : c))

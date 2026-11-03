@@ -156,11 +156,12 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
                 _ => throw new ArgumentOutOfRangeException(nameof(request)),
             };
 
-            string stagedPath = Unwrap(result);
+            string stagedPath = FileNaming.FindOutputFile(stagingFolder, Unwrap(result))
+                ?? throw new DownloadException("The download finished but the output file was not found.");
             string finalPath = FileNaming.GetUniquePath(
                 Path.Combine(request.OutputFolder, fileNamePrefix + Path.GetFileName(stagedPath)));
 
-            File.Move(stagedPath, finalPath);
+            await MoveWithRetryAsync(stagedPath, finalPath, ct);
             return finalPath;
         }
         finally
@@ -211,4 +212,23 @@ public sealed class DownloadService(string binariesFolder) : IDownloadService
 
     private YoutubeDL GetClient() =>
         _client ?? throw new InvalidOperationException("Call InitializeAsync first.");
+
+    private static async Task MoveWithRetryAsync(string source, string destination, CancellationToken ct)
+    {
+        const int maxAttempts = 5;
+
+        for (int attempt = 1; ; attempt++)
+        {
+            try
+            {
+                File.Move(source, destination);
+                return;
+            }
+            catch (IOException) when (attempt < maxAttempts)
+            {
+                // Antivirus or another process may still hold the file for a moment.
+                await Task.Delay(TimeSpan.FromMilliseconds(300 * attempt), ct);
+            }
+        }
+    }
 }
