@@ -32,7 +32,7 @@
         <ComboBox ItemsSource="{Binding Browsers}"
                   SelectedItem="{Binding SelectedBrowser}"
                   MinWidth="160"
-                  ToolTip.Tip="Only needed for content that requires login (some Instagram or private posts).">
+                  ToolTip.Tip="Only needed for content that requires login (Instagram, some TikTok). On Windows, use Firefox.">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="models:BrowserOption">
               <TextBlock Text="{Binding Label}" />
