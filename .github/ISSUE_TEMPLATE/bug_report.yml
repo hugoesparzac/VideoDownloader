@@ -1,0 +1,72 @@
+name: Bug report
+description: Something does not work as expected
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before reporting, press **Update tools** in the app and read the README section about browser cookies (on Windows, use Firefox).
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Shown in the window title.
+      placeholder: v1.0.2
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - Linux
+        - macOS
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What were you downloading?
+      options:
+        - Single video
+        - Audio only
+        - Playlist
+        - Image post
+        - Other / not sure
+  - type: input
+    id: site
+    attributes:
+      label: Site
+      placeholder: YouTube, TikTok, Instagram...
+  - type: input
+    id: url
+    attributes:
+      label: URL (only if public)
+      description: Do not share private links.
+  - type: dropdown
+    id: cookies
+    attributes:
+      label: Browser cookies setting
+      options:
+        - None
+        - Firefox
+        - Chrome
+        - Edge
+        - Brave
+        - Chromium
+        - Safari
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Steps you followed, what you expected, and the exact error shown in the app.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Crash log (only if the app closed on its own)
+      description: "Windows: %LOCALAPPDATA%\\VideoDownloader\\logs\\crash.log. Remove personal data first."
+      render: text
