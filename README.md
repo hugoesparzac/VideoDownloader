@@ -30,6 +30,7 @@ A cross-platform desktop app for downloading videos, audio and images from YouTu
 - Optional browser cookies for content that requires login
 - Built-in "Update tools" button, plus an optional check on startup, because sites change often
 - Remembers your folder, format and browser between sessions
+- Light, dark or system theme
 
 ## Installation
 
@@ -107,6 +108,10 @@ packaging/linux/          Linux installer and desktop entry
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/), enforced by a Husky git hook and checked on pull request titles.
 - Code style is enforced with `.editorconfig`, analyzers and `dotnet format` (pre-commit hook and CI).
 - CI builds and checks formatting on every push and pull request. Pushing a `v*` tag builds the packages and creates a GitHub release.
+
+## Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
 
 ## Acknowledgments
 

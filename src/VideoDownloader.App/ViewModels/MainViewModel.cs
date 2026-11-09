@@ -14,6 +14,7 @@ public sealed partial class MainViewModel(
     IDownloadService downloadService,
     IImageDownloadService imageService,
     ISettingsService settingsService,
+    IThemeService themeService,
     IFolderPickerService folderPicker) : ViewModelBase
 {
     private static readonly int[] PlaylistHeights = [2160, 1440, 1080, 720, 480, 360, 240, 144];
@@ -86,6 +87,13 @@ public sealed partial class MainViewModel(
 
     [ObservableProperty]
     public partial bool CheckUpdatesOnStartup { get; set; } = true;
+
+    [ObservableProperty]
+    public partial AppTheme SelectedTheme { get; set; } = AppTheme.System;
+
+    public IReadOnlyList<AppTheme> Themes { get; } = [AppTheme.System, AppTheme.Light, AppTheme.Dark];
+
+    partial void OnSelectedThemeChanged(AppTheme value) => themeService.Apply(value);
 
     public IReadOnlyList<BrowserOption> Browsers { get; } = BrowserOption.GetAvailable();
 
@@ -370,6 +378,7 @@ public sealed partial class MainViewModel(
         SelectedBrowser = Browsers.FirstOrDefault(b => b.Value == settings.CookiesFromBrowser)
             ?? BrowserOption.None;
         CheckUpdatesOnStartup = settings.CheckUpdatesOnStartup;
+        SelectedTheme = settings.Theme;
     }
 
     public void SaveSettings() =>
@@ -379,6 +388,7 @@ public sealed partial class MainViewModel(
             Kind = SelectedKind,
             CookiesFromBrowser = SelectedBrowser.Value,
             CheckUpdatesOnStartup = CheckUpdatesOnStartup,
+            Theme = SelectedTheme,
         });
 
     private async Task DownloadImagesAsync(CancellationToken ct)
