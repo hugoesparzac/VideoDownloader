@@ -28,6 +28,7 @@ public partial class App : Application
             services.AddTransient<MainViewModel>();
             services.AddSingleton<IImageDownloadService>(_ => new GalleryDlService());
             services.AddSingleton<ISettingsService>(_ => new JsonSettingsService());
+            services.AddSingleton<IThemeService>(_ => new AvaloniaThemeService());
             var provider = services.BuildServiceProvider();
 
             var viewModel = provider.GetRequiredService<MainViewModel>();

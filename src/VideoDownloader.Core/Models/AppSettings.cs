@@ -9,4 +9,6 @@ public sealed record AppSettings
     public string? CookiesFromBrowser { get; init; }
 
     public bool CheckUpdatesOnStartup { get; init; } = true;
+
+    public AppTheme Theme { get; init; } = AppTheme.System;
 }
